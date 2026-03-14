@@ -15,8 +15,8 @@ COPY . .
 # Build Next.js
 RUN npm run build
 
-# Compile WebSocket server TypeScript to JavaScript
-RUN npx tsc server/websocket-server.ts --outDir server/dist --module commonjs --target ES2020 --esModuleInterop --skipLibCheck || npx tsx server/websocket-server.ts --version
+# Ensure public directory exists
+RUN mkdir -p /app/public
 
 # Production stage
 FROM node:20-alpine AS runner
