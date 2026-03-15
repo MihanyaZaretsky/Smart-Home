@@ -44,6 +44,18 @@ UI Components (re-render)
 
 ## Running the Application
 
+### Docker (Recommended)
+
+```bash
+# Build Docker image
+docker build -t smart-home .
+
+# Run container
+docker run -p 3000:3000 -p 3001:3001 smart-home
+```
+
+Docker runs both Next.js (port 3000) and WebSocket server (port 3001).
+
 ### Development
 
 ```bash
