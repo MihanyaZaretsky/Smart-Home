@@ -148,6 +148,25 @@ class WebSocketManager {
 // Singleton instance
 const wsManager = new WebSocketManager();
 
+function parseNumericSensorValue(
+  value: SensorData["value"] | null | undefined,
+): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string") {
+    const parsed = parseFloat(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
 // Hook for generic sensor data
 export function useSensorData(
   deviceId: string,
@@ -162,6 +181,7 @@ export function useSensorData(
     (message: WebSocketMessage) => {
       if (message.type === "error") {
         setError(message.message || "Unknown error");
+        setLoading(false);
         return;
       }
 
@@ -174,10 +194,8 @@ export function useSensorData(
       // Handle initial data load
       if (message.type === "initial" && message.data) {
         const allData = message.data as Record<string, SensorData>;
-        if (allData[sensorKey]) {
-          setData(allData[sensorKey]);
-          setLoading(false);
-        }
+        setData(allData[sensorKey] || null);
+        setLoading(false);
       }
 
       // Handle sensor updates
@@ -228,16 +246,7 @@ export function useGasSensor(deviceId: string) {
     "gas",
   );
 
-  // Parse value - handle string or number from ESP
-  let gasValue = 0;
-  if (data?.value !== undefined && data?.value !== null) {
-    if (typeof data.value === "string") {
-      gasValue = parseFloat(data.value);
-      if (isNaN(gasValue)) gasValue = 0;
-    } else if (typeof data.value === "number") {
-      gasValue = data.value;
-    }
-  }
+  const gasValue = parseNumericSensorValue(data?.value) ?? 0;
 
   const isSafe = gasValue < 500;
   const status =
@@ -254,6 +263,71 @@ export function useGasSensor(deviceId: string) {
     connected,
     refresh,
     hasData: !!data,
+  };
+}
+
+// Specialized hook for temperature sensor
+export function useTemperatureSensor(deviceId: string) {
+  const { data, loading, error, connected, refresh } = useSensorData(
+    deviceId,
+    "temperature",
+  );
+
+  const parsedValue = parseNumericSensorValue(data?.value);
+  const value = parsedValue ?? 0;
+
+  const status =
+    parsedValue === null
+      ? "no-data"
+      : value < 18
+        ? "low"
+        : value > 28
+          ? "high"
+          : "normal";
+
+  return {
+    value,
+    status,
+    timestamp: data?.timestamp,
+    history: data?.history || [],
+    loading,
+    error,
+    connected,
+    refresh,
+    hasData: parsedValue !== null,
+  };
+}
+
+// Specialized hook for humidity sensor
+export function useHumiditySensor(deviceId: string) {
+  const { data, loading, error, connected, refresh } = useSensorData(
+    deviceId,
+    "humidity",
+  );
+
+  const parsedValue = parseNumericSensorValue(data?.value);
+  const normalizedValue =
+    parsedValue === null ? 0 : Math.min(100, Math.max(0, parsedValue));
+
+  const status =
+    parsedValue === null
+      ? "no-data"
+      : normalizedValue < 30
+        ? "low"
+        : normalizedValue > 70
+          ? "high"
+          : "normal";
+
+  return {
+    value: normalizedValue,
+    status,
+    timestamp: data?.timestamp,
+    history: data?.history || [],
+    loading,
+    error,
+    connected,
+    refresh,
+    hasData: parsedValue !== null,
   };
 }
 
