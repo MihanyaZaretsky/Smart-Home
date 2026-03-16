@@ -6,7 +6,7 @@
  * Other sensors are sent immediately.
  *
  * Usage:
- *   node test-websocket-client.js                    # Single test (5 messages)
+ *   node test-websocket-client.js                    # Single test (6 messages)
  *   node test-websocket-client.js --infinite         # Infinite test (repeats)
  *   node test-websocket-client.js [ws_url]           # Custom WebSocket URL
  *   node test-websocket-client.js [ws_url] --infinite # Custom URL + infinite mode
@@ -45,6 +45,12 @@ const test_messages = [
     room: "bathroom",
     sensor: "water_leak",
     value: false,
+    delay: 0,
+  },
+  {
+    room: "office",
+    sensor: "temperature",
+    value: 15,
     delay: 0,
   },
   {
@@ -149,7 +155,7 @@ function send_test_batch(ws) {
 function connect_and_test() {
   console.log(`✓ Connecting to ${ws_url}...`);
   console.log(
-    `✓ Mode: ${infinite_mode ? "INFINITE (repeats)" : "SINGLE (5 messages)"}`,
+    `✓ Mode: ${infinite_mode ? "INFINITE (repeats)" : "SINGLE (6 messages)"}`,
   );
   console.log(`✓ Motion delay: 6 seconds between messages\n`);
 

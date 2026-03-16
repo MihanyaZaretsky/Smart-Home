@@ -1,11 +1,11 @@
-import { Header } from "@/components/Main page/Header";
-import { ImageCard } from "@/components/Main page/ImageCard";
-import { OfficeCard } from "@/components/Main page/OfficeCard";
-import { HallwayCard } from "@/components/Main page/HallwayCard";
-import { KitchenCard } from "@/components/Main page/KitchenCard";
-import { BathroomCard } from "@/components/Main page/BathroomCard";
-import { EventsCard } from "@/components/Main page/EventsCard";
-import { StreetCard } from "@/components/Main page/StreetCard";
+﻿import { Header } from "@/components/MainPage/Header";
+import { ImageCard } from "@/components/MainPage/ImageCard";
+import { OfficeCard } from "@/components/MainPage/OfficeCard";
+import { HallwayCard } from "@/components/MainPage/HallwayCard";
+import { KitchenCard } from "@/components/MainPage/KitchenCard";
+import { BathroomCard } from "@/components/MainPage/BathroomCard";
+import { EventsCard } from "@/components/MainPage/EventsCard";
+import { StreetCard } from "@/components/MainPage/StreetCard";
 import { PageTransition } from "@/components/PageTransition";
 
 export default function Home() {
@@ -30,3 +30,4 @@ export default function Home() {
     </PageTransition>
   );
 }
+
