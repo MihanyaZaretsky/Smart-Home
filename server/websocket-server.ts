@@ -35,12 +35,26 @@ interface DeviceState {
   timestamp: string;
 }
 
+interface RobotUpdate {
+  type: "robot_update";
+  data: {
+    isActive: boolean;
+    task: string;
+    battery: number;
+    location: string;
+    cansCollected: number;
+    isCharging?: boolean;
+    imageUrl?: string;
+  };
+  timestamp?: string;
+}
+
 interface BroadcastMessage {
-  type: "initial" | "sensor_update" | "client_count" | "device_state";
+  type: "initial" | "sensor_update" | "client_count" | "device_state" | "robot_update";
   key?: string;
   deviceId?: string;
   sensorType?: string;
-  data?: SensorData | Record<string, SensorData>;
+  data?: SensorData | Record<string, SensorData> | RobotUpdate["data"];
   timestamp: string;
   clientCount?: number;
   device?: string;
@@ -274,6 +288,29 @@ wss.on("connection", (ws: WebSocket, req) => {
           JSON.stringify({
             type: "ack",
             device: command.device,
+            timestamp: new Date().toISOString(),
+          }),
+        );
+        return;
+      }
+
+      // Handle robot_update from robot client
+      if (message.type === "robot_update" && message.data) {
+        const robotMessage = message as RobotUpdate;
+        console.log(`[WebSocket] Robot update received:`, robotMessage.data);
+
+        // Broadcast to all connected clients
+        broadcast({
+          type: "robot_update",
+          data: robotMessage.data,
+          timestamp: new Date().toISOString(),
+        } as unknown as BroadcastMessage);
+
+        // Send acknowledgment
+        ws.send(
+          JSON.stringify({
+            type: "ack",
+            source: "robot",
             timestamp: new Date().toISOString(),
           }),
         );
