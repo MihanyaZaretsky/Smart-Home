@@ -1,17 +1,15 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
 import { Lightbulb } from "lucide-react";
+import { useMotionSensor, useDeviceState } from "@/hooks/useSensorData";
 
 export function HallwayCard() {
-  const [brightness, setBrightness] = useState(75);
-  const [autoMode, setAutoMode] = useState(true);
-  const [motionDetected, setMotionDetected] = useState(true);
+  const { isDetected } = useMotionSensor("esp_hallway_01");
+  const lightState = useDeviceState("hall_light");
 
-  const handleBrightnessChange = (value: number) => {
-    setBrightness(value);
-    setAutoMode(false);
-  };
+  // Default to auto mode if not set
+  const autoMode = lightState.state !== "manual";
+  const brightness = 75; // Would need to get from lightState if available
 
   return (
     <Link href="/hallway" className="block h-full">
@@ -31,11 +29,13 @@ export function HallwayCard() {
           {/* Light Control */}
           <div className="mt-4 bg-black/40 border border-white/5 rounded-2xl p-4" onClick={(e) => e.preventDefault()}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
-                <Lightbulb className="w-5 h-5 text-amber-400" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${lightState.isOn ? "bg-amber-500/20" : "bg-gray-700"}`}>
+                <Lightbulb className={`w-5 h-5 ${lightState.isOn ? "text-amber-400" : "text-gray-500"}`} />
               </div>
               <div>
-                <div className="text-lg font-light">ВКЛ</div>
+                <div className={`text-lg font-light ${lightState.isOn ? "text-amber-400" : "text-gray-400"}`}>
+                  {lightState.loading ? "..." : lightState.isOn ? "ВКЛ" : "ВЫКЛ"}
+                </div>
                 <div className="text-xs text-gray-500">Статус</div>
               </div>
             </div>
@@ -50,7 +50,7 @@ export function HallwayCard() {
               min="0"
               max="100"
               value={brightness}
-              onChange={(e) => handleBrightnessChange(Number(e.target.value))}
+              readOnly
               className="w-full h-2 rounded-full appearance-none cursor-pointer bg-gray-700"
               style={{
                 background: `linear-gradient(to right, #fbbf24 0%, #fbbf24 ${brightness}%, #333 ${brightness}%, #333 100%)`
@@ -61,10 +61,10 @@ export function HallwayCard() {
           {/* Motion Indicator */}
           <div className="mt-4 flex items-center gap-2">
             <div
-              className={`w-2 h-2 rounded-full ${motionDetected ? "bg-green-500 animate-pulse" : "bg-gray-500"}`}
+              className={`w-2 h-2 rounded-full ${isDetected ? "bg-green-500 animate-pulse" : "bg-gray-500"}`}
             />
             <span className="text-sm text-gray-400">
-              {motionDetected ? "Движение обнаружено" : "Движения нет"}
+              {isDetected ? "Движение обнаружено" : "Движения нет"}
             </span>
           </div>
         </div>
