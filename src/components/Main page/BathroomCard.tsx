@@ -1,10 +1,14 @@
+"use client";
 import Link from "next/link";
 import { Droplet } from "lucide-react";
+import { useSensorData, useDeviceState } from "@/hooks/useSensorData";
 
 export function BathroomCard() {
-  // Mock data - will be replaced with real WebSocket data
-  const isDry = true;
-  const valveOpen = true;
+  const leakData = useSensorData("esp_bathroom_01", "water_leak");
+  const valveState = useDeviceState("valve");
+
+  const isDry = leakData.data?.value !== "detected";
+  const valveOpen = valveState.state !== "closed";
 
   return (
     <Link href="/bathroom" className="block h-full">
@@ -25,9 +29,9 @@ export function BathroomCard() {
           <div className="mt-4 grid grid-cols-2 gap-3">
             {/* Leak Sensor */}
             <div className="bg-black/40 border border-white/5 rounded-2xl p-4">
-              <Droplet className="w-6 h-6 mb-3" />
+              <Droplet className={`w-6 h-6 mb-3 ${!isDry ? "animate-pulse text-red-400" : ""}`} />
               <div className={`text-lg font-medium mb-1 ${isDry ? "text-cyan-400" : "text-red-400"}`}>
-                {isDry ? "Сухо" : "АВАРИЯ"}
+                {leakData.loading ? "..." : isDry ? "Сухо" : "АВАРИЯ"}
               </div>
               <div className="text-xs text-gray-500">Датчик протечки</div>
             </div>
@@ -38,7 +42,7 @@ export function BathroomCard() {
                 <span className="text-xl">{isDry ? "🚰" : "🔒"}</span>
               </div>
               <div className={`text-lg font-medium mb-1 ${valveOpen ? "text-blue-400" : "text-gray-400"}`}>
-                {valveOpen ? "Открыт" : "Закрыт"}
+                {valveState.loading ? "..." : valveOpen ? "Открыт" : "Закрыт"}
               </div>
               <div className="text-xs text-gray-500">Кран</div>
             </div>
