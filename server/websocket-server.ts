@@ -50,11 +50,12 @@ interface RobotUpdate {
 }
 
 interface BroadcastMessage {
-  type: "initial" | "sensor_update" | "client_count" | "device_state" | "robot_update";
+  type: "initial" | "sensor_update" | "client_count" | "device_state" | "video_frame";
   key?: string;
   deviceId?: string;
   sensorType?: string;
-  data?: SensorData | Record<string, SensorData> | RobotUpdate["data"];
+  data?: SensorData | Record<string, SensorData> | string;
+  room?: string;
   timestamp: string;
   clientCount?: number;
   device?: string;
@@ -314,6 +315,14 @@ wss.on("connection", (ws: WebSocket, req) => {
             timestamp: new Date().toISOString(),
           }),
         );
+      // Handle video frames from CV client
+      if (message.type === "video_frame") {
+        broadcast({
+          type: "video_frame",
+          room: message.room,
+          data: message.data,
+          timestamp: new Date().toISOString(),
+        } as BroadcastMessage & { type: "video_frame"; room: string; data: string });
         return;
       }
 

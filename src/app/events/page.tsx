@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TopBar } from "@/components/TopBar";
 import { PageTransition } from "@/components/PageTransition";
-import { Search, Filter, Calendar, ChevronLeft } from "lucide-react";
+import { Search, Filter, Calendar, User, UserX } from "lucide-react";
+import { wsManager } from "@/hooks/useSensorData";
 
 interface LogEvent {
   id: number;
@@ -11,6 +12,7 @@ interface LogEvent {
   room: string;
   type: "info" | "warning" | "alert";
   message: string;
+  sensorType?: string;
 }
 
 export default function EventsPage() {
@@ -20,9 +22,9 @@ export default function EventsPage() {
 
   const rooms = ["all", "Прихожая", "Кабинет", "Кухня", "Ванная", "Улица"];
 
-  const events: LogEvent[] = [
+  const [events, setEvents] = useState<LogEvent[]>([
     { id: 1, time: "17:24", date: "23.02.2026", room: "Кабинет", type: "info", message: "Активирован режим «Фокус»" },
-    { id: 2, time: "16:15", date: "23.02.2026", room: "Улица", type: "info", message: "Распознан пользователь: Администратор" },
+    { id: 2, time: "16:15", date: "23.02.2026", room: "Улица", type: "info", message: "Распознан пользователь: Администратор", sensorType: "face_recognition" },
     { id: 3, time: "15:32", date: "23.02.2026", room: "Прихожая", type: "warning", message: "Автоматизация приостановлена" },
     { id: 4, time: "14:30", date: "23.02.2026", room: "Прихожая", type: "info", message: "Датчик движения активирован" },
     { id: 5, time: "12:15", date: "23.02.2026", room: "Кухня", type: "info", message: "Вентилятор включен вручную" },
@@ -30,7 +32,7 @@ export default function EventsPage() {
     { id: 7, time: "09:00", date: "23.02.2026", room: "Прихожая", type: "info", message: "Свет выключен по сценарию «Утренний»" },
     { id: 8, time: "07:00", date: "23.02.2026", room: "Прихожая", type: "info", message: "Свет включён по сценарию «Утренний» (100%)" },
     { id: 9, time: "23:45", date: "22.02.2026", room: "Улица", type: "warning", message: "Температура превысила порог (26°C)" },
-    { id: 10, time: "23:45", date: "22.02.2026", room: "Улица", type: "info", message: "Распознано неизвестное лицо" },
+    { id: 10, time: "23:45", date: "22.02.2026", room: "Улица", type: "info", message: "Распознано неизвестное лицо", sensorType: "face_recognition" },
     { id: 11, time: "23:30", date: "22.02.2026", room: "Улица", type: "alert", message: "Отправлено уведомление в Telegram со снимком" },
     { id: 12, time: "18:30", date: "22.02.2026", room: "Кухня", type: "alert", message: "ТРЕВОГА: Обнаружена утечка газа!" },
     { id: 13, time: "18:30", date: "22.02.2026", room: "Кухня", type: "info", message: "Вентилятор включён автоматически" },
@@ -38,7 +40,42 @@ export default function EventsPage() {
     { id: 15, time: "14:20", date: "22.02.2026", room: "Ванная", type: "alert", message: "АВАРИЯ: Обнаружена протечка!" },
     { id: 16, time: "14:20", date: "22.02.2026", room: "Ванная", type: "info", message: "Кран автоматически перекрыт" },
     { id: 17, time: "14:20", date: "22.02.2026", room: "Ванная", type: "alert", message: "Отправлено уведомление в Telegram" },
-  ];
+  ]);
+
+  // Handle WebSocket messages for real-time face recognition events
+  useEffect(() => {
+    const handleMessage = (message: any) => {
+      if (message.type === "sensor_update" && message.data) {
+        const { sensorType, data } = message;
+
+        if (sensorType === "face_recognition") {
+          const timestamp = new Date(data.timestamp);
+          const time = timestamp.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+          const date = timestamp.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+          const faceName = String(data.value);
+          const isUnknown = faceName === "CHUZHOY" || faceName === "Searching...";
+
+          const newEvent: LogEvent = {
+            id: Date.now(),
+            time,
+            date,
+            room: "Улица",
+            type: isUnknown ? "warning" : "info",
+            message: isUnknown
+              ? `Неизвестное лицо: ${faceName}`
+              : `Распознан пользователь: ${faceName}`,
+            sensorType: "face_recognition",
+          };
+
+          setEvents((prev) => [newEvent, ...prev].slice(0, 100));
+        }
+      }
+    };
+
+    const unsubscribe = wsManager.subscribe(handleMessage);
+    return () => unsubscribe();
+  }, []);
 
   const filteredEvents = events.filter((event) => {
     const roomMatch = filterRoom === "all" || event.room === filterRoom;
@@ -75,6 +112,16 @@ export default function EventsPage() {
       default:
         return type;
     }
+  };
+
+  const getFaceIcon = (event: LogEvent) => {
+    if (event.sensorType === "face_recognition") {
+      if (event.message.includes("Неизвестное")) {
+        return <UserX className="w-4 h-4 text-amber-400 flex-shrink-0" />;
+      }
+      return <User className="w-4 h-4 text-green-400 flex-shrink-0" />;
+    }
+    return null;
   };
 
   return (
@@ -195,8 +242,9 @@ export default function EventsPage() {
                           {getTypeLabel(event.type)}
                         </div>
                       </div>
-                      <div className="text-sm text-white break-words">
-                        {event.message}
+                      <div className="flex items-center gap-2 text-sm text-white break-words">
+                        {getFaceIcon(event)}
+                        <span>{event.message}</span>
                       </div>
                     </div>
                   </div>
